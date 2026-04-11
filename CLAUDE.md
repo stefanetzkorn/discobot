@@ -69,7 +69,6 @@ Create a new `.ts` file in `src/events/`. Export a `register*` function that tak
 
 | Table | Purpose |
 |---|---|
-| `guild_settings` | Per-server config (prefix, language) |
 | `voice_sessions` | Voice channel join/leave log; `left_at` is NULL while the user is still in the channel |
 
 Query total voice time per user:

@@ -2,11 +2,22 @@ services:
   bot:
     build: .
     restart: unless-stopped
-
-    # Reads DISCORD_TOKEN, DISCORD_CLIENT_ID, and DISCORD_GUILD_ID from your .env file.
     env_file: .env
+    depends_on:
+      db:
+        condition: service_healthy
 
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: discobot
+      POSTGRES_PASSWORD: discobot
+      POSTGRES_DB: discobot
     volumes:
-      # Bind mount — maps ./data on the host directly into the container.
-      # The database file sits in your project folder and is easy to inspect or back up.
-      - ./data:/app/data
+      - ./pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U discobot"]
+      interval: 5s
+      timeout: 5s
+      retries: 5

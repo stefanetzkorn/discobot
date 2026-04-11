@@ -1,5 +1,5 @@
 node_modules
-data
+pgdata
 .env
 .env.local
 .env.*.local

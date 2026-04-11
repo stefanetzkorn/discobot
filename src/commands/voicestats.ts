@@ -1,5 +1,6 @@
 import { SlashCommandBuilder, EmbedBuilder, MessageFlags } from "discord.js";
 import type { Command } from "../types.ts";
+import { sql } from "../database.ts";
 
 function formatDuration(seconds: number): string {
   if (seconds < 60) return `${seconds}s`;
@@ -15,7 +16,7 @@ export default {
     .setName("voicestats")
     .setDescription("See how long you have spent in voice channels"),
 
-  async execute(interaction, db) {
+  async execute(interaction) {
     const userId = interaction.user.id;
     // guildId is used instead of interaction.guild?.id because the latter can be
     // null if the bot was invited without the bot scope.
@@ -26,25 +27,22 @@ export default {
       return;
     }
 
-    // COALESCE(left_at, unixepoch()) includes ongoing sessions by counting up to now.
-    const totalRow = db
-      .query<{ total_seconds: number }, [string, string]>(
-        `SELECT SUM(COALESCE(left_at, unixepoch()) - joined_at) AS total_seconds
-         FROM voice_sessions
-         WHERE user_id = ? AND guild_id = ?`
-      )
-      .get(userId, guildId);
+    // COALESCE(left_at, NOW()) includes ongoing sessions by counting up to now.
+    // EXTRACT(EPOCH FROM interval) converts a Postgres interval to seconds.
+    const [totalRow] = await sql<{ total_seconds: number | null }[]>`
+      SELECT EXTRACT(EPOCH FROM SUM(COALESCE(left_at, NOW()) - joined_at))::INTEGER AS total_seconds
+      FROM voice_sessions
+      WHERE user_id = ${userId} AND guild_id = ${guildId}
+    `;
 
-    const topChannels = db
-      .query<{ channel_name: string; seconds: number }, [string, string]>(
-        `SELECT channel_name, SUM(COALESCE(left_at, unixepoch()) - joined_at) AS seconds
-         FROM voice_sessions
-         WHERE user_id = ? AND guild_id = ?
-         GROUP BY channel_id
-         ORDER BY seconds DESC
-         LIMIT 3`
-      )
-      .all(userId, guildId);
+    const topChannels = await sql<{ channel_name: string; seconds: number }[]>`
+      SELECT channel_name, EXTRACT(EPOCH FROM SUM(COALESCE(left_at, NOW()) - joined_at))::INTEGER AS seconds
+      FROM voice_sessions
+      WHERE user_id = ${userId} AND guild_id = ${guildId}
+      GROUP BY channel_id, channel_name
+      ORDER BY seconds DESC
+      LIMIT 3
+    `;
 
     const total = totalRow?.total_seconds ?? 0;
 

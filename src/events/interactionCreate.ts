@@ -1,12 +1,11 @@
 import { MessageFlags } from "discord.js";
 import type { Client } from "discord.js";
-import type { Database } from "bun:sqlite";
 import type { Command } from "../types.ts";
+import { sql } from "../database.ts";
 
 export function registerInteractionCreate(
   client: Client,
   commands: Map<string, Command>,
-  db: Database,
 ): void {
   client.on("interactionCreate", async (interaction) => {
     if (!interaction.isChatInputCommand()) return;
@@ -18,7 +17,11 @@ export function registerInteractionCreate(
     }
 
     try {
-      await command.execute(interaction, db);
+      await command.execute(interaction);
+      await sql`
+        INSERT INTO command_logs (guild_id, user_id, command)
+        VALUES (${interaction.guildId}, ${interaction.user.id}, ${interaction.commandName})
+      `;
     } catch (error) {
       console.error(`Error executing /${interaction.commandName}:`, error);
 

@@ -1,6 +1,6 @@
 import { join } from "node:path";
 import { createClient } from "./src/client.ts";
-import { createDatabase } from "./src/database.ts";
+import { initDatabase } from "./src/database.ts";
 import { loadCommands } from "./src/loader.ts";
 import { registerReadyEvent } from "./src/events/ready.ts";
 import { registerGuildCreate } from "./src/events/guildCreate.ts";
@@ -9,13 +9,13 @@ import { registerVoiceStateUpdate } from "./src/events/voiceStateUpdate.ts";
 
 const COMMANDS_DIR = join(import.meta.dir, "src", "commands");
 
-const db = createDatabase("data/bot.db");
+await initDatabase();
 const commands = await loadCommands(COMMANDS_DIR);
 
 const client = createClient();
 registerReadyEvent(client, commands);
 registerGuildCreate(client, commands);
-registerInteractionCreate(client, commands, db);
-registerVoiceStateUpdate(client, db);
+registerInteractionCreate(client, commands);
+registerVoiceStateUpdate(client);
 
 await client.login(process.env.DISCORD_TOKEN);
