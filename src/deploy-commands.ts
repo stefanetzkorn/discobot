@@ -1,17 +1,21 @@
 import { REST, Routes } from "discord.js";
 import type { Command } from "./types.ts";
 
-export async function deployCommands(commands: Map<string, Command>): Promise<void> {
-  const token = process.env.DISCORD_TOKEN;
-  const clientId = process.env.DISCORD_CLIENT_ID;
+let rest: REST;
 
-  if (!token || !clientId) {
-    throw new Error("Missing DISCORD_TOKEN or DISCORD_CLIENT_ID in environment");
-  }
+function getRestClient(): REST {
+  const token = process.env.DISCORD_TOKEN;
+  if (!token) throw new Error("Missing DISCORD_TOKEN in environment");
+  // Reuse the same REST instance across calls instead of creating one per guild.
+  rest ??= new REST().setToken(token);
+  return rest;
+}
+
+export async function deployCommands(commands: Map<string, Command>, guildId: string): Promise<void> {
+  const clientId = process.env.DISCORD_CLIENT_ID;
+  if (!clientId) throw new Error("Missing DISCORD_CLIENT_ID in environment");
 
   const body = [...commands.values()].map((c) => c.data.toJSON());
-
-  const rest = new REST().setToken(token);
-  await rest.put(Routes.applicationCommands(clientId), { body });
-  console.log(`Deployed ${body.length} slash command(s) globally`);
+  await getRestClient().put(Routes.applicationGuildCommands(clientId, guildId), { body });
+  console.log(`Deployed ${body.length} slash command(s) to guild ${guildId}`);
 }

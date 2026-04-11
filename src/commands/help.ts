@@ -7,7 +7,7 @@ export default {
     .setDescription("List all available commands"),
 
   async execute(interaction) {
-    const commands = await interaction.client.application?.commands.fetch();
+    const commands = await interaction.guild?.commands.fetch();
 
     const embed = new EmbedBuilder()
       .setTitle("Available Commands")
