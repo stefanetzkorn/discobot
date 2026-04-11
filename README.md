@@ -1,6 +1,6 @@
 # discobot
 
-A Discord bot built with [Bun](https://bun.com), TypeScript, discord.js v14, and SQLite.
+A Discord bot built with [Bun](https://bun.com), TypeScript, discord.js v14, and PostgreSQL.
 
 ## Setup
 
@@ -20,6 +20,7 @@ cp .env.example .env
 |---|---|
 | `DISCORD_TOKEN` | [Discord Developer Portal](https://discord.com/developers/applications) → Your app → Bot → Token |
 | `DISCORD_CLIENT_ID` | Developer Portal → Your app → General Information → Application ID |
+| `DATABASE_URL` | Set to `postgres://discobot:discobot@db:5432/discobot` for Docker |
 
 3. Run the bot:
 
@@ -39,7 +40,30 @@ Logs:
 docker compose logs -f
 ```
 
-The SQLite database is stored in `./data/bot.db` on the host.
+Postgres data is stored in `./pgdata` on the host.
+
+## Exploring the database
+
+Open an interactive Postgres session inside the running container:
+
+```bash
+docker exec -it discobot-db-1 psql -U discobot -d discobot
+```
+
+Useful queries:
+
+```sql
+-- Recent command usage
+SELECT * FROM command_logs ORDER BY used_at DESC LIMIT 20;
+
+-- Total voice time per user
+SELECT user_id, SUM(EXTRACT(EPOCH FROM (COALESCE(left_at, NOW()) - joined_at)))::INTEGER AS seconds
+FROM voice_sessions
+GROUP BY user_id
+ORDER BY seconds DESC;
+```
+
+Type `\dt` to list all tables, `\q` to quit.
 
 ## Project structure
 
@@ -68,7 +92,7 @@ export default {
     .setName("example")
     .setDescription("An example command"),
 
-  async execute(interaction, db) {
+  async execute(interaction) {
     await interaction.reply({
       content: "Hello!",
       flags: [MessageFlags.Ephemeral],
@@ -77,10 +101,12 @@ export default {
 } satisfies Command;
 ```
 
-The `db` parameter is a `bun:sqlite` `Database` instance — use it to read or write data:
+To query the database from a command, import `sql` from `database.ts`:
 
 ```ts
-const row = db.query("SELECT * FROM guild_settings WHERE guild_id = ?").get(interaction.guildId);
+import { sql } from "../database.ts";
+
+const rows = await sql`SELECT * FROM command_logs WHERE user_id = ${interaction.user.id}`;
 ```
 
 Use `satisfies Command` (not `as Command`) so TypeScript catches any structural errors.
@@ -113,14 +139,22 @@ registerMessageCreate(client);
 Add a `CREATE TABLE IF NOT EXISTS` block to `src/database.ts`. The table will be created automatically on the next startup:
 
 ```ts
-db.run(`
+await sql`
   CREATE TABLE IF NOT EXISTS my_table (
-    id       INTEGER PRIMARY KEY AUTOINCREMENT,
-    guild_id TEXT NOT NULL,
-    value    TEXT NOT NULL
-  ) STRICT;
-`);
+    id         BIGSERIAL    PRIMARY KEY,
+    guild_id   TEXT         NOT NULL,
+    value      TEXT         NOT NULL,
+    created_at TIMESTAMPTZ  NOT NULL DEFAULT NOW()
+  )
+`;
 ```
+
+## Database tables
+
+| Table | Purpose |
+|---|---|
+| `command_logs` | Every slash command invocation — who used it, where, and when |
+| `voice_sessions` | Voice channel join/leave history; `left_at` is NULL while the user is still in the channel |
 
 ## Notes
 
