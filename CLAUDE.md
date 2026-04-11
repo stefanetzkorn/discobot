@@ -87,11 +87,10 @@ Copy `.env.example` to `.env` and fill in:
 |---|---|
 | `DISCORD_TOKEN` | Bot token from the Discord Developer Portal |
 | `DISCORD_CLIENT_ID` | Application ID (used to register slash commands) |
-| `DISCORD_GUILD_ID` | Server ID for guild-scoped command registration (instant; switch to global for production) |
 
 ## Key rules
 
 - Always use `import.meta.dir` instead of `__dirname`
 - `Glob.scan` must use `{ absolute: true }` so dynamic `import()` resolves correctly
-- Slash commands are guild-scoped (instant) — switch to `Routes.applicationCommands` for global production deployment
+- Slash commands are registered globally via `Routes.applicationCommands` — can take up to an hour to propagate
 - Only request the Discord gateway intents you actually need (currently `Guilds` + `GuildVoiceStates`)
