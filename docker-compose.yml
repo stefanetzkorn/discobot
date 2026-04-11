@@ -1,0 +1,12 @@
+services:
+  bot:
+    build: .
+    restart: unless-stopped
+
+    # Reads DISCORD_TOKEN, DISCORD_CLIENT_ID, and DISCORD_GUILD_ID from your .env file.
+    env_file: .env
+
+    volumes:
+      # Bind mount — maps ./data on the host directly into the container.
+      # The database file sits in your project folder and is easy to inspect or back up.
+      - ./data:/app/data
