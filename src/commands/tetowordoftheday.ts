@@ -2,6 +2,7 @@ import { SlashCommandBuilder, AttachmentBuilder, MessageFlags } from "discord.js
 import { createCanvas, loadImage, GlobalFonts } from "@napi-rs/canvas";
 import { join } from "node:path";
 import type { Command } from "../types.ts";
+import { sql } from "../database.ts";
 
 const IMAGE_PATH = join(import.meta.dir, "../../assets/teto.png");
 
@@ -13,14 +14,29 @@ export default {
     .setDescription("Reveals Teto's word of the day"),
 
   async execute(interaction) {
-    const response = await fetch("https://random-word-api.herokuapp.com/word");
+    const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
 
-    if (!response.ok) {
-      await interaction.reply({ content: "Could not fetch the word of the day. Try again later.", flags: [MessageFlags.Ephemeral] });
-      return;
+    // Check if a word was already picked today.
+    const [existing] = await sql<{ word: string }[]>`
+      SELECT word FROM word_of_the_day WHERE date = ${today}
+    `;
+
+    let word: string;
+
+    if (existing) {
+      word = existing.word;
+    } else {
+      const response = await fetch("https://random-word-api.herokuapp.com/word");
+
+      if (!response.ok) {
+        await interaction.reply({ content: "Could not fetch the word of the day. Try again later.", flags: [MessageFlags.Ephemeral] });
+        return;
+      }
+
+      [word] = await response.json() as [string];
+
+      await sql`INSERT INTO word_of_the_day (date, word) VALUES (${today}, ${word})`;
     }
-
-    const [word] = await response.json() as [string];
 
     const bg = await loadImage(IMAGE_PATH);
     const canvas = createCanvas(bg.width, bg.height);
