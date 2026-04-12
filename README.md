@@ -69,13 +69,16 @@ Type `\dt` to list all tables, `\q` to quit.
 
 ```
 src/
-  commands/          # One file per slash command
-  events/            # One file per Discord gateway event
-  types.ts           # Command interface
-  database.ts        # Database setup and schema
-  client.ts          # Discord client factory
-  loader.ts          # Auto-discovers command files
-  deploy-commands.ts # Registers commands with Discord per guild
+  commands/            # One file per slash command
+  events/              # One file per Discord gateway event
+  types.ts             # Command interface
+  database.ts          # Exports the Bun.sql instance
+  migrate.ts           # Runs pending migrations from migrations/ on startup
+  timer-scheduler.ts   # Schedules timer DMs, reloads pending timers on restart
+  client.ts            # Discord client factory
+  loader.ts            # Auto-discovers command files
+  deploy-commands.ts   # Registers commands with Discord per guild
+migrations/            # Numbered .sql migration files
 ```
 
 ## Adding a slash command
@@ -136,25 +139,28 @@ registerMessageCreate(client);
 
 ## Adding a database table
 
-Add a `CREATE TABLE IF NOT EXISTS` block to `src/database.ts`. The table will be created automatically on the next startup:
+Create a new numbered `.sql` file in `migrations/`. It runs automatically on the next startup:
 
-```ts
-await sql`
-  CREATE TABLE IF NOT EXISTS my_table (
-    id         BIGSERIAL    PRIMARY KEY,
-    guild_id   TEXT         NOT NULL,
-    value      TEXT         NOT NULL,
-    created_at TIMESTAMPTZ  NOT NULL DEFAULT NOW()
-  )
-`;
+```sql
+-- migrations/004_add_something.sql
+CREATE TABLE IF NOT EXISTS my_table (
+  id         BIGSERIAL    PRIMARY KEY,
+  guild_id   TEXT         NOT NULL,
+  value      TEXT         NOT NULL,
+  created_at TIMESTAMPTZ  NOT NULL DEFAULT NOW()
+);
 ```
+
+Migrations run inside a transaction — if a statement fails the whole file is rolled back.
 
 ## Database tables
 
 | Table | Purpose |
 |---|---|
-| `command_logs` | Every slash command invocation — who used it, where, and when |
+| `migrations` | Tracks which migration files have been applied |
 | `voice_sessions` | Voice channel join/leave history; `left_at` is NULL while the user is still in the channel |
+| `command_logs` | Every slash command invocation — who used it, where, and when |
+| `timers` | Persistent timers set via `/timer`; `fired` is FALSE until the DM is sent |
 
 ## Notes
 
