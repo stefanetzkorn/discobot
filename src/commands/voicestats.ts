@@ -59,11 +59,11 @@ export default {
       WHERE user_id = ${userId} AND guild_id = ${guildId} AND joined_at >= ${cutoff}
     `;
 
-    const topChannels = await sql<{ channel_name: string; seconds: number }[]>`
-      SELECT channel_name, EXTRACT(EPOCH FROM SUM(COALESCE(left_at, NOW()) - joined_at))::INTEGER AS seconds
+    const topChannels = await sql<{ channel_id: string; seconds: number }[]>`
+      SELECT channel_id, EXTRACT(EPOCH FROM SUM(COALESCE(left_at, NOW()) - joined_at))::INTEGER AS seconds
       FROM voice_sessions
       WHERE user_id = ${userId} AND guild_id = ${guildId} AND joined_at >= ${cutoff}
-      GROUP BY channel_id, channel_name
+      GROUP BY channel_id
       ORDER BY seconds DESC
       LIMIT 3
     `;
@@ -84,7 +84,10 @@ export default {
     if (topChannels.length > 0) {
       embed.addFields({
         name: "Top channels",
-        value: topChannels.map((ch, i) => `${i + 1}. **${ch.channel_name}** — ${formatDuration(ch.seconds)}`).join("\n"),
+        value: topChannels.map((ch, i) => {
+          const name = interaction.guild?.channels.cache.get(ch.channel_id)?.name ?? ch.channel_id;
+          return `${i + 1}. **${name}** — ${formatDuration(ch.seconds)}`;
+        }).join("\n"),
       });
     }
 

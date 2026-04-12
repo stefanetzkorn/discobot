@@ -17,8 +17,8 @@ export function registerReadyEvent(client: Client, commands: Map<string, Command
       for (const state of guild.voiceStates.cache.values()) {
         if (state.channelId && state.member && !state.member.user.bot) {
           await sql`
-            INSERT INTO voice_sessions (guild_id, user_id, channel_id, channel_name)
-            VALUES (${guild.id}, ${state.id}, ${state.channelId}, ${state.channel?.name ?? state.channelId})
+            INSERT INTO voice_sessions (guild_id, user_id, channel_id)
+            VALUES (${guild.id}, ${state.id}, ${state.channelId})
           `;
         }
       }
