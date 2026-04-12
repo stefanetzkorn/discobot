@@ -8,6 +8,9 @@ WORKDIR /app
 COPY package.json bun.lock ./
 RUN bun install --frozen-lockfile
 
+# Install fonts required by @napi-rs/canvas to render text on Linux.
+RUN apt-get update && apt-get install -y --no-install-recommends fonts-liberation && rm -rf /var/lib/apt/lists/*
+
 # Copy the rest of the source code.
 COPY . .
 
