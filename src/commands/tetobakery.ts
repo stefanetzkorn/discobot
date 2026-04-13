@@ -262,8 +262,7 @@ export default {
 
     if (action === "teto") {
       const row = await getOrCreateRow(userId, guildId);
-      const totalBaguettes = parseFloat(row.baguettes) + pendingBaguettes(row);
-      const weightTons = (totalBaguettes / 1000).toFixed(2);
+      const weightTons = (parseFloat(row.total_produced) / 1000).toFixed(2);
       const displayName = interaction.user.globalName ?? interaction.user.username;
 
       const attachment = new AttachmentBuilder(
