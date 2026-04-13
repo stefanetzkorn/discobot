@@ -149,11 +149,11 @@ function buildStatusView(row: BakeryRow, result?: string): MessageContent {
 }
 
 function buildShopView(row: BakeryRow, result?: string): MessageContent {
-  const available = parseFloat(row.baguettes) + pendingBaguettes(row);
+  const stored = parseFloat(row.baguettes);
 
   const lines = Object.entries(UPGRADES).map(([, upg]) => {
     const owned = row[upg.column as keyof BakeryRow] as number;
-    const canAfford = available >= upg.cost ? "✅" : "❌";
+    const canAfford = stored >= upg.cost ? "✅" : "❌";
     return `${canAfford} **${upg.label}** — ${upg.cost} 🥖 → +${upg.rate}/min  *(owned: ${owned})*`;
   });
 
@@ -161,7 +161,7 @@ function buildShopView(row: BakeryRow, result?: string): MessageContent {
     .setTitle("🏪 Teto's Upgrade Shop")
     .setColor(0xe8b86d)
     .setDescription(
-      `Your baguettes (incl. uncollected): **${formatBaguettes(available)}**\n\n` +
+      `Your baguettes: **${formatBaguettes(stored)}**\n\n` +
         lines.join("\n")
     );
 
@@ -172,22 +172,22 @@ function buildShopView(row: BakeryRow, result?: string): MessageContent {
       .setCustomId("tetobakery:upgrade:oven")
       .setLabel(`Oven · 10 🥖`)
       .setStyle(ButtonStyle.Success)
-      .setDisabled(available < UPGRADES.oven.cost),
+      .setDisabled(stored < UPGRADES.oven.cost),
     new ButtonBuilder()
       .setCustomId("tetobakery:upgrade:mega_oven")
       .setLabel(`Mega Oven · 150 🥖`)
       .setStyle(ButtonStyle.Success)
-      .setDisabled(available < UPGRADES.mega_oven.cost),
+      .setDisabled(stored < UPGRADES.mega_oven.cost),
     new ButtonBuilder()
       .setCustomId("tetobakery:upgrade:secret_recipe")
       .setLabel(`Secret Recipe · 800 🥖`)
       .setStyle(ButtonStyle.Success)
-      .setDisabled(available < UPGRADES.secret_recipe.cost),
+      .setDisabled(stored < UPGRADES.secret_recipe.cost),
     new ButtonBuilder()
       .setCustomId("tetobakery:upgrade:baguette_machine")
       .setLabel(`Machine · 5000 🥖`)
       .setStyle(ButtonStyle.Success)
-      .setDisabled(available < UPGRADES.baguette_machine.cost),
+      .setDisabled(stored < UPGRADES.baguette_machine.cost),
     new ButtonBuilder()
       .setCustomId("tetobakery:status")
       .setLabel("Back")
