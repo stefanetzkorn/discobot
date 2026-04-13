@@ -49,6 +49,7 @@ interface BakeryRow {
   user_id: string;
   guild_id: string;
   baguettes: string; // NUMERIC comes back as string from Bun.sql
+  total_produced: string;
   last_collected_at: Date;
   ovens: number;
   mega_ovens: number;
@@ -111,6 +112,7 @@ function buildStatusView(row: BakeryRow, result?: string): MessageContent {
       { name: "Production rate", value: `${bpm}/min`, inline: true },
       { name: "Uncollected", value: formatBaguettes(pending), inline: true },
       { name: "Last collected", value: lastCollectedText, inline: true },
+      { name: "Total ever produced", value: formatBaguettes(parseFloat(row.total_produced)), inline: true },
       {
         name: "Upgrades",
         value: [
@@ -237,6 +239,7 @@ export default {
       await sql`
         UPDATE teto_bakery
         SET baguettes = baguettes + ${gained},
+            total_produced = total_produced + ${gained},
             last_collected_at = NOW()
         WHERE user_id = ${userId} AND guild_id = ${guildId}
       `;
@@ -244,6 +247,7 @@ export default {
       const updatedRow: BakeryRow = {
         ...row,
         baguettes: String(parseFloat(row.baguettes) + gained),
+        total_produced: String(parseFloat(row.total_produced) + gained),
         last_collected_at: new Date(),
       };
 

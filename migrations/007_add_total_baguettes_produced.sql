@@ -1,0 +1,1 @@
+ALTER TABLE teto_bakery ADD COLUMN total_produced NUMERIC(20, 4) NOT NULL DEFAULT 0;
