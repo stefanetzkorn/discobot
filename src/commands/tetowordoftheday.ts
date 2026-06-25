@@ -1,4 +1,4 @@
-import { SlashCommandBuilder, AttachmentBuilder, MessageFlags } from "discord.js";
+import { SlashCommandBuilder, AttachmentBuilder } from "discord.js";
 import { createCanvas, loadImage, GlobalFonts } from "@napi-rs/canvas";
 import { join } from "node:path";
 import type { Command } from "../types.ts";
@@ -14,6 +14,8 @@ export default {
     .setDescription("Reveals Teto's word of the day"),
 
   async execute(interaction) {
+    await interaction.deferReply();
+
     const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
 
     // Check if a word was already picked today.
@@ -25,11 +27,18 @@ export default {
 
     if (existing) {
       word = existing.word;
-    } else {
-      const response = await fetch("https://random-word-api.herokuapp.com/word");
+    } 
+    else {
+      let response: Response;
+      try {
+        response = await fetch("https://random-word-api.herokuapp.com/word");
+      } catch {
+        await interaction.editReply({ content: "I cant look up a random word. Teto is sad :(" });
+        return;
+      }
 
       if (!response.ok) {
-        await interaction.reply({ content: "Could not fetch the word of the day. Try again later.", flags: [MessageFlags.Ephemeral] });
+        await interaction.editReply({ content: "I cant look up a random word. Teto is sad :(" });
         return;
       }
 
@@ -57,6 +66,6 @@ export default {
     const buffer = canvas.toBuffer("image/png");
     const attachment = new AttachmentBuilder(buffer, { name: "word-of-the-day.png" });
 
-    await interaction.reply({ files: [attachment] });
+    await interaction.editReply({ files: [attachment] });
   },
 } satisfies Command;
