@@ -21,6 +21,7 @@ cp .env.example .env
 | `DISCORD_TOKEN` | [Discord Developer Portal](https://discord.com/developers/applications) → Your app → Bot → Token |
 | `DISCORD_CLIENT_ID` | Developer Portal → Your app → General Information → Application ID |
 | `DATABASE_URL` | Set to `postgres://discobot:discobot@db:5432/discobot` for Docker |
+| `BIRTHDAY_TIMEZONE` | IANA timezone for `/birthday` times, e.g. `Europe/Berlin` (optional — default UTC) |
 
 3. Run the bot:
 
@@ -75,6 +76,7 @@ src/
   database.ts          # Exports the Bun.sql instance
   migrate.ts           # Runs pending migrations from migrations/ on startup
   timer-scheduler.ts   # Schedules timer DMs, reloads pending timers on restart
+  birthday-scheduler.ts # Polls DB for due /birthday cards (supports far-future dates)
   client.ts            # Discord client factory
   loader.ts            # Auto-discovers command files
   deploy-commands.ts   # Registers commands with Discord per guild
@@ -161,6 +163,7 @@ Migrations run inside a transaction — if a statement fails the whole file is r
 | `voice_sessions` | Voice channel join/leave history; `left_at` is NULL while the user is still in the channel |
 | `command_logs` | Every slash command invocation — who used it, where, and when |
 | `timers` | Persistent timers set via `/timer`; `fired` is FALSE until the DM is sent |
+| `birthdays` | Birthday cards set via `/birthday`; `user_id` is who gets mentioned, `send_at` is when to post, `sent` is FALSE until posted |
 
 ## Notes
 

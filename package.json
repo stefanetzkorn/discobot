@@ -8,13 +8,15 @@
     "dev": "bun --hot run index.ts"
   },
   "devDependencies": {
-    "@types/bun": "latest"
+    "@types/bun": "latest",
+    "@types/luxon": "^3.7.5"
   },
   "peerDependencies": {
     "typescript": "^5"
   },
   "dependencies": {
     "@napi-rs/canvas": "^0.1.97",
-    "discord.js": "^14.26.2"
+    "discord.js": "^14.26.2",
+    "luxon": "^3.7.2"
   }
 }
