@@ -140,6 +140,30 @@ export default {
     // (e.g. a birthday that already passed this year fires next year instead).
     const sendAt = nextYearlyOccurrence(firstOccurrence.toJSDate(), timezone);
 
+    const [existing] = await sql<{ id: number }[]>`
+      SELECT id FROM birthdays WHERE guild_id = ${guildId} AND user_id = ${user.id}
+    `;
+
+    const unixSeconds = Math.floor(sendAt.getTime() / 1000);
+    const when = DateTime.fromJSDate(sendAt, { zone: timezone }).toFormat("yyyy-MM-dd HH:mm");
+    const utcWhen = DateTime.fromJSDate(sendAt, { zone: "UTC" }).toFormat("HH:mm");
+    const details = `for ${when} (${timezone}, ${utcWhen} UTC) in ${channel}. First one <t:${unixSeconds}:R>.`;
+
+    if (existing) {
+      // This user already has a birthday in this guild — overwrite it.
+      await sql`
+        UPDATE birthdays
+        SET channel_id = ${channel.id}, name = ${name}, send_at = ${sendAt},
+            timezone = ${timezone}, created_by = ${interaction.user.id}
+        WHERE id = ${existing.id}
+      `;
+      await interaction.reply({
+        content: `A birthday entry for **${name}** (${user}) already existed — it has been overwritten. New schedule: ${details}`,
+        flags: [MessageFlags.Ephemeral],
+      });
+      return;
+    }
+
     const [row] = await sql<{ id: number }[]>`
       INSERT INTO birthdays (guild_id, channel_id, user_id, name, send_at, timezone, created_by)
       VALUES (${guildId}, ${channel.id}, ${user.id}, ${name}, ${sendAt}, ${timezone}, ${interaction.user.id})
@@ -148,11 +172,8 @@ export default {
 
     if (!row) throw new Error("Failed to insert birthday");
 
-    const unixSeconds = Math.floor(sendAt.getTime() / 1000);
-    const when = DateTime.fromJSDate(sendAt, { zone: timezone }).toFormat("yyyy-MM-dd HH:mm");
-    const utcWhen = DateTime.fromJSDate(sendAt, { zone: "UTC" }).toFormat("HH:mm");
     await interaction.reply({
-      content: `Birthday card for **${name}** (${user}) scheduled for ${when} (${timezone}, ${utcWhen} UTC) in ${channel}. First one <t:${unixSeconds}:R>.`,
+      content: `Birthday card for **${name}** (${user}) scheduled ${details}`,
       flags: [MessageFlags.Ephemeral],
     });
   },
